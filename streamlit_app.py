@@ -1,3 +1,5 @@
+import base64
+import json
 import os
 from io import BytesIO
 
@@ -5,12 +7,13 @@ import requests
 import streamlit as st
 from PIL import Image
 
-API_BASE_URL = os.environ.get("FASTAPI_BASE_URL", "http://127.0.0.1:8000")
+API_BASE_URL = os.environ.get("FASTAPI_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+MAX_STREAM_COUNT = int(os.environ.get("MAX_STREAM_COUNT", "6"))
 
 st.set_page_config(page_title="Nano Hairstyle Studio")
 st.title("Nano Hairstyle Studio")
 st.write(
-    "Upload a portrait or snap one with your webcam to generate a new hairstyle while keeping the face intact."
+    "Upload a portrait or snap one with your webcam to generate fresh hairstyle ideas while keeping the face intact."
 )
 
 with st.sidebar:
@@ -18,9 +21,17 @@ with st.sidebar:
     prompt = st.text_area(
         "Prompt",
         "Change my hairstyle keep my face same",
-        help="Describe the hairstyle changes you want the model to apply.",
+        help="Describe how you want the hairstyle to change.",
     )
-    api_url = st.text_input("FastAPI URL", f"{API_BASE_URL}/hairstyle")
+    count = st.number_input(
+        "Number of hairstyles",
+        min_value=1,
+        max_value=MAX_STREAM_COUNT,
+        value=1,
+        step=1,
+    )
+    base_url_input = st.text_input("FastAPI base URL", API_BASE_URL)
+    st.caption("Single result: /hairstyle. Streaming variants: /hairstyles/stream.")
 
 uploaded_file = st.file_uploader(
     "Upload an image", type=["png", "jpg", "jpeg"], accept_multiple_files=False
@@ -39,33 +50,86 @@ elif uploaded_file is not None:
 
 if image_source is not None:
     image_bytes = image_source.getvalue()
-    detected_type = Image.open(BytesIO(image_bytes)).format
-    if detected_type:
-        image_mime = f"image/{detected_type.lower()}"
+    detected_type = "png"
+    try:
+        with Image.open(BytesIO(image_bytes)) as preview:
+            if preview.format:
+                detected_type = preview.format.lower()
+    except Exception:  # noqa: BLE001
+        detected_type = "png"
+    image_mime = f"image/{detected_type}"
     st.image(image_bytes, caption="Selected image", use_column_width=True)
 
-if st.button("Generate hairstyle", disabled=image_bytes is None):
+button_label = "Generate hairstyles" if count > 1 else "Generate hairstyle"
+
+if st.button(button_label, disabled=image_bytes is None):
     if not prompt.strip():
         st.warning("Please enter a prompt before generating a hairstyle.")
     elif image_bytes is None:
         st.warning("Please upload or capture an image first.")
     else:
-        try:
-            with st.spinner("Calling FastAPI service..."):
-                response = requests.post(
-                    api_url,
-                    files={"image": (image_source.name, image_bytes, image_mime)},
-                    data={"prompt": prompt},
-                    timeout=120,
-                )
-            if response.status_code != 200:
-                st.error(
-                    f"Request failed with status "
-                    f"{response.status_code}: {response.text or 'No details provided.'}"
-                )
-            else:
-                result_image = Image.open(BytesIO(response.content))
-                st.success("New hairstyle generated!")
-                st.image(result_image, caption="Generated style", use_column_width=True)
-        except requests.RequestException as exc:
-            st.error(f"Error contacting FastAPI service: {exc}")
+        base_url = base_url_input.rstrip("/") or API_BASE_URL
+        single_url = f"{base_url}/hairstyle"
+        stream_url = f"{base_url}/hairstyles/stream"
+        filename = getattr(image_source, "name", "uploaded.png") or "uploaded.png"
+
+        if count == 1:
+            try:
+                with st.spinner("Calling FastAPI service..."):
+                    response = requests.post(
+                        single_url,
+                        files={"image": (filename, image_bytes, image_mime)},
+                        data={"prompt": prompt},
+                        timeout=(10, 300),
+                    )
+                if response.status_code != 200:
+                    st.error(
+                        f"Request failed with status "
+                        f"{response.status_code}: {response.text or 'No details provided.'}"
+                    )
+                else:
+                    st.success("New hairstyle generated!")
+                    st.image(response.content, caption="Generated style", use_column_width=True)
+            except requests.RequestException as exc:
+                st.error(f"Error contacting FastAPI service: {exc}")
+        else:
+            try:
+                with st.spinner("Generating hairstyles..."):
+                    with requests.post(
+                        stream_url,
+                        files={"image": (filename, image_bytes, image_mime)},
+                        data={"prompt": prompt, "count": str(count)},
+                        stream=True,
+                        timeout=(10, 600),
+                    ) as response:
+                        if response.status_code != 200:
+                            st.error(
+                                f"Request failed with status "
+                                f"{response.status_code}: {response.text or 'No details provided.'}"
+                            )
+                        else:
+                            gallery = st.container()
+                            for line in response.iter_lines(decode_unicode=True):
+                                if not line:
+                                    continue
+                                try:
+                                    payload = json.loads(line)
+                                except json.JSONDecodeError:
+                                    continue
+                                if "error" in payload:
+                                    st.error(payload["error"])
+                                    break
+                                image_b64 = payload.get("image_base64")
+                                if not image_b64:
+                                    continue
+                                try:
+                                    image_data = base64.b64decode(image_b64)
+                                except (ValueError, TypeError):
+                                    continue
+                                gallery.image(
+                                    image_data,
+                                    caption=f"Generated style {payload.get('index', 0) + 1}",
+                                    use_column_width=True,
+                                )
+            except requests.RequestException as exc:
+                st.error(f"Error contacting FastAPI service: {exc}")
