@@ -4,7 +4,7 @@ import json
 import os
 from io import BytesIO
 from typing import Optional
-
+from google.genai import types
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
@@ -46,6 +46,13 @@ def _generate_hairstyle_bytes(image_bytes: bytes, prompt: str) -> bytes:
     response = client.models.generate_content(
         model=os.environ.get("MODEL", "gemini-2.5-flash-image-preview"),
         contents=[pil_image, prompt],
+        config=types.GenerateContentConfig(
+        response_modalities=["TEXT", "IMAGE"]
+   ),
+
+
+
+        
     )
 
     image_parts = [
