@@ -35,6 +35,17 @@ def get_client() -> genai.Client:
     return _client
 
 
+def _get_model_sequence() -> list[str]:
+    models = [
+        os.environ.get("MAIN_MODEL"),
+        os.environ.get("FALLBACK_MODEL"),
+    ]
+    filtered_models = [model for model in models if model]
+    if not filtered_models:
+        filtered_models.append("gemini-2.5-flash-image-preview")
+    return filtered_models
+
+
 def _generate_hairstyle_bytes(image_bytes: bytes, prompt: str) -> bytes:
     try:
         pil_image = Image.open(BytesIO(image_bytes))
@@ -43,17 +54,25 @@ def _generate_hairstyle_bytes(image_bytes: bytes, prompt: str) -> bytes:
         raise ValueError("The uploaded file is not a valid image.") from exc
 
     client = get_client()
-    response = client.models.generate_content(
-        model=os.environ.get("MODEL", "gemini-2.5-flash-image-preview"),
-        contents=[pil_image, prompt],
-        config=types.GenerateContentConfig(
-        response_modalities=["TEXT", "IMAGE"]
-   ),
+    last_error: Optional[Exception] = None
+    response: Optional[types.GenerateContentResponse] = None
 
+    for model_name in _get_model_sequence():
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=[pil_image, prompt],
+                config=types.GenerateContentConfig(
+                    response_modalities=["TEXT", "IMAGE"],
+                ),
+            )
+            break
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            continue
 
-
-        
-    )
+    if response is None:
+        raise RuntimeError("All configured models failed to generate content.") from last_error
 
     image_parts = [
         part.inline_data.data
@@ -165,3 +184,4 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
