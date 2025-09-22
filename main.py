@@ -44,7 +44,7 @@ def _generate_hairstyle_bytes(image_bytes: bytes, prompt: str) -> bytes:
 
     client = get_client()
     response = client.models.generate_content(
-        model="gemini-2.5-flash-image-preview",
+        model=os.environ.get("MODEL", "gemini-2.5-flash-image-preview"),
         contents=[pil_image, prompt],
     )
 
