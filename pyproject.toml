@@ -19,6 +19,7 @@ dependencies = [
     "httpcore==1.0.9",
     "httpx==0.28.1",
     "idna==3.10",
+    "loguru==0.7.2",
     "pillow==10.4.0",
     "pyasn1==0.6.1",
     "pyasn1-modules==0.4.2",
