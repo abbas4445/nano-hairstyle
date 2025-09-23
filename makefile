@@ -1,6 +1,5 @@
 deploy:
-	 uv run scripts/deploy_cloud_run.py
-	 
+	 uv run scripts/deploy_cloud_run.py	 
 backend:
 	uv run main.py
 ui:
