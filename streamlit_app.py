@@ -93,6 +93,8 @@ if st.button(button_label, disabled=image_bytes is None):
             except requests.RequestException as exc:
                 st.error(f"Error contacting FastAPI service: {exc}")
         else:
+            images = []  # Collect (index, image bytes) for ordered display
+            error_message = None
             try:
                 with st.spinner("Generating hairstyles..."):
                     with requests.post(
@@ -103,12 +105,11 @@ if st.button(button_label, disabled=image_bytes is None):
                         timeout=(10, 600),
                     ) as response:
                         if response.status_code != 200:
-                            st.error(
+                            error_message = (
                                 f"Request failed with status "
                                 f"{response.status_code}: {response.text or 'No details provided.'}"
                             )
                         else:
-                            gallery = st.container()
                             for line in response.iter_lines(decode_unicode=True):
                                 if not line:
                                     continue
@@ -117,7 +118,7 @@ if st.button(button_label, disabled=image_bytes is None):
                                 except json.JSONDecodeError:
                                     continue
                                 if "error" in payload:
-                                    st.error(payload["error"])
+                                    error_message = payload["error"]
                                     break
                                 image_b64 = payload.get("image_base64")
                                 if not image_b64:
@@ -126,10 +127,27 @@ if st.button(button_label, disabled=image_bytes is None):
                                     image_data = base64.b64decode(image_b64)
                                 except (ValueError, TypeError):
                                     continue
-                                gallery.image(
-                                    image_data,
-                                    caption=f"Generated style {payload.get('index', 0) + 1}",
-                                    use_column_width=True,
-                                )
+                                try:
+                                    index = int(payload.get("index", len(images)))
+                                except (TypeError, ValueError):
+                                    index = len(images)
+                                images.append((index, image_data))
             except requests.RequestException as exc:
                 st.error(f"Error contacting FastAPI service: {exc}")
+            else:
+                if error_message:
+                    st.error(error_message)
+                elif not images:
+                    st.info("No images were returned by the service.")
+                else:
+                    gallery = st.container()
+                    for display_index, (_, image_data) in enumerate(
+                        sorted(images, key=lambda item: item[0]),
+                        start=1,
+                    ):
+                        gallery.image(
+                            image_data,
+                            caption=f"Generated style {display_index}",
+                            use_column_width=True,
+                        )
+
