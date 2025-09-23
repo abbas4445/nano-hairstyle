@@ -25,6 +25,39 @@ MAX_STREAM_COUNT = "6"  # optional override
 
 4. Click **Deploy**. Streamlit installs the dependencies and starts the app automatically. Subsequent pushes to the selected branch trigger a redeploy.
 
+## Deployment on Google Cloud Run
+
+The project ships with a helper script (`scripts/deploy_cloud_run.py`) and a Makefile target that deploy the container to Google Cloud Run.
+
+1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) and authenticate:
+   ```bash
+   gcloud auth login
+   gcloud auth application-default login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+
+2. Ensure `.env` contains your Google Cloud settings (`GCP_PROJECT_ID`, `CLOUD_RUN_SERVICE`, `CLOUD_RUN_REGION`) along with the runtime secrets shown above.
+
+3. Deploy from the project root:
+   ```bash
+   make deploy
+   # or python scripts/deploy_cloud_run.py
+   ```
+
+   The script packages the current directory, pushes it with the Google Cloud SDK, and applies all non-deployment keys from `.env` as Cloud Run environment variables.
+
+4. After deployment completes, Cloud Run prints the service URL. Open it in a browser or send API requests to confirm the app is running.
+
+**Tip:** Cloud Run requires the container to listen on the `PORT` environment variable. This image reads it automatically (defaults to 8000 locally). If you make changes, keep that behaviour.
+
+**Troubleshooting:**
+- Inspect logs with `gcloud run services logs read <service-name> --region <region>`.
+- If secrets ever appear in your terminal output, rotate them immediately in their respective dashboards.
+
+
+
+
+
 ### During development
 - Use the sidebar field labeled "FastAPI base URL" to switch between backends without redeploying.
 - The "Number of hairstyles" input is capped by the `MAX_STREAM_COUNT` environment variable (default 6). Tuning it in secrets helps prevent overly long Cloud Run requests.
