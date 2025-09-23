@@ -48,7 +48,9 @@ The project ships with a helper script (`scripts/deploy_cloud_run.py`) and a Mak
 
 4. After deployment completes, Cloud Run prints the service URL. Open it in a browser or send API requests to confirm the app is running.
 
-**Tip:** Cloud Run requires the container to listen on the `PORT` environment variable. This image reads it automatically (defaults to 8000 locally). If you make changes, keep that behaviour.
+5. Make sure to have proc file or dockerfile before deployment
+
+**Tip:** Cloud Run requires the container to listen on the `PORT` environment variable. This image reads it automatically (defaults to 8080 locally). If you make changes, keep that behaviour.
 
 **Troubleshooting:**
 - Inspect logs with `gcloud run services logs read <service-name> --region <region>`.
