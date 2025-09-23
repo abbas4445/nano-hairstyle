@@ -71,3 +71,6 @@ The frontend calls two endpoints:
 - `POST /hairstyles/stream` for newline-delimited JSON streaming.
 
 Ensure the Cloud Run service enables unauthenticated HTTPS requests or configure authentication and update the Streamlit app accordingly.
+
+## Backend Link
+[Hairstyle Backend Service Link](https://hairstyle-backend-service-163900448961.asia-southeast1.run.app)
