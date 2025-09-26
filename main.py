@@ -11,10 +11,27 @@ from fastapi.responses import Response, StreamingResponse
 from google import genai
 from PIL import Image
 from loguru import logger
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",  # Vite dev server
+        "http://127.0.0.1:5173",
+        "https://your-production-frontend.com",
+        "http://localhost:8080",
+        "https://hairstyle-backend-service-163900448961.asia-southeast1.run.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 _client: Optional[genai.Client] = None
 SUPPORTED_CONTENT_TYPES = {"image/jpeg", "image/png"}

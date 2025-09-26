@@ -74,3 +74,26 @@ Ensure the Cloud Run service enables unauthenticated HTTPS requests or configure
 
 ## Backend Link
 [Hairstyle Backend Service Link](https://hairstyle-backend-service-163900448961.asia-southeast1.run.app)
+
+## React frontend
+A simple React interface lives in `frontend/`. It mirrors the Streamlit behaviour but keeps the code plain so you can follow every step.
+
+### Run it locally
+1. Install Node.js 18 or later.
+2. Open a terminal, then run:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+3. Visit the printed URL (by default http://localhost:5173).
+4. The app automatically targets your local FastAPI server at
+   http://127.0.0.1:8000. Set a different backend (for example, a deployed Cloud Run URL) by editing the text field in the UI or by creating a `frontend/.env` file with:
+   ```bash
+   VITE_API_BASE_URL="https://your-deployed-backend.example.com"
+   ```
+
+### Code tour
+- `src/App.jsx` keeps everything in one place: image picker, prompt form, and streaming reader.
+- `src/styles.css` applies a light theme so the page looks polished without extra libraries.
+- The request logic always sends the selected file and prompt to your FastAPI backend. When you ask for more than one hairstyle it reads the JSON lines stream and adds each image to the gallery as it arrives.

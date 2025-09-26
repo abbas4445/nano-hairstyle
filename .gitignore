@@ -12,4 +12,11 @@ wheels/
 
 
 # uv files
-uv.lock
+uv.lock# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Misc
+*.log
+
