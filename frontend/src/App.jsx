@@ -14,7 +14,7 @@ import {
 import clsx from 'clsx';
 
 const DEFAULT_BACKEND = (
-  import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8080'
+  import.meta.env.VITE_API_BASE_URL ?? 'https://hairstyle-backend-service-163900448961.asia-southeast1.run.app'
 ).replace(/\/$/, '');
 const MAX_STREAM_COUNT = 6;
 const FACE_SUFFIX = ' keep my face same';
