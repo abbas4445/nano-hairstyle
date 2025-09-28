@@ -11,6 +11,7 @@ import {
   FiCamera,
   FiX,
 } from 'react-icons/fi';
+import { PiMagicWand } from 'react-icons/pi';
 import clsx from 'clsx';
 
 const DEFAULT_BACKEND = (
@@ -33,6 +34,8 @@ const PROMPTS = {
     'Laid-back surfer cut with tousled texture',
   ],
 };
+
+const RECOMMEND_PROMPT = 'you are an expert hairstylist, change my hairstyle based on my face, pls keep my face same';
 
 function MetricCard({ icon: Icon, value, label }) {
   return (
@@ -210,6 +213,10 @@ function App() {
 
   const handleUsePrompt = (value) => {
     setPrompt(ensureFaceSuffix(value));
+  };
+
+  const handleRecommendPrompt = () => {
+    handleUsePrompt(RECOMMEND_PROMPT);
   };
 
   const handlePromptChange = (event) => {
@@ -468,6 +475,13 @@ function App() {
               <div className="card__header">
                 <h2>2 · Craft prompt</h2>
                 <span className="card__hint">Select a vibe then tailor the details</span>
+              </div>
+
+              <div className="prompt-actions">
+                <button type="button" className="btn btn--ghost" onClick={handleRecommendPrompt}>
+                  <PiMagicWand />
+                  Recommend me
+                </button>
               </div>
 
               <GenderToggle value={gender} onChange={handleGenderChange} />
