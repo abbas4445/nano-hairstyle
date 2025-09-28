@@ -226,6 +226,7 @@ function App() {
 
   const handleRecommendPrompt = () => {
     handleUsePrompt(RECOMMEND_PROMPT);
+    setIsPromptPanelOpen(false);
   };
 
   const togglePromptPanel = () => {
