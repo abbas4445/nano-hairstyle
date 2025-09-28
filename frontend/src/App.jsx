@@ -9,6 +9,7 @@ import {
   FiUser,
   FiUserCheck,
   FiCamera,
+  FiEdit3,
   FiX,
 } from 'react-icons/fi';
 import { PiMagicWand } from 'react-icons/pi';
@@ -107,6 +108,8 @@ function App() {
   const [cameraError, setCameraError] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isCameraLoading, setIsCameraLoading] = useState(false);
+
+  const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -217,6 +220,10 @@ function App() {
 
   const handleRecommendPrompt = () => {
     handleUsePrompt(RECOMMEND_PROMPT);
+  };
+
+  const togglePromptPanel = () => {
+    setIsPromptPanelOpen((prev) => !prev);
   };
 
   const handlePromptChange = (event) => {
@@ -482,22 +489,46 @@ function App() {
                   <PiMagicWand />
                   Recommend me
                 </button>
+                <button
+                  type="button"
+                  className={clsx('btn btn--ghost', { 'btn--ghost-active': isPromptPanelOpen })}
+                  onClick={togglePromptPanel}
+                  aria-expanded={isPromptPanelOpen}
+                  aria-controls="prompt-panel"
+                >
+                  <FiEdit3 />
+                  Hairstyle prompts
+                </button>
               </div>
 
-              <GenderToggle value={gender} onChange={handleGenderChange} />
-
-              <div className="prompt-library">
-                {promptLibrary.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    className={clsx('prompt-chip', { 'prompt-chip--active': ensureFaceSuffix(item) === prompt })}
-                    onClick={() => handleUsePrompt(item)}
+              <AnimatePresence initial={false}>
+                {isPromptPanelOpen && (
+                  <motion.div
+                    key="prompt-panel"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ overflow: 'hidden' }}
                   >
-                    {item}
-                  </button>
-                ))}
-              </div>
+                    <div className="prompt-panel" id="prompt-panel">
+                      <GenderToggle value={gender} onChange={handleGenderChange} />
+                      <div className="prompt-library">
+                        {promptLibrary.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            className={clsx('prompt-chip', { 'prompt-chip--active': ensureFaceSuffix(item) === prompt })}
+                            onClick={() => handleUsePrompt(item)}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <form className="form" onSubmit={handleSubmit}>
                 <label className="form__field">
