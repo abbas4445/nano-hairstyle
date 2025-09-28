@@ -517,7 +517,7 @@ function App() {
           >
             <div className="card card--soft">
               <div className="card__header">
-                <h2>1 · Upload portrait</h2>
+                <h2>1 {String.fromCharCode(183)} Upload portrait</h2>
                 <span className="card__hint">
                   Best results start with even lighting and a centered face
                 </span>
@@ -571,7 +571,7 @@ function App() {
 
             <div className="card">
               <div className="card__header">
-                <h2>2 · Craft prompt</h2>
+                <h2>2 {String.fromCharCode(183)} Craft prompt</h2>
                 <span className="card__hint">Select a vibe then tailor the details</span>
               </div>
 
@@ -664,7 +664,7 @@ function App() {
             <div className="card card--results">
               <div className="card__header card__header--results">
                 <div>
-                  <h2>3 � Showcase gallery</h2>
+                  <h2>3 {String.fromCharCode(183)} Showcase gallery</h2>
                   <span className="card__hint">Generated looks appear below in real time</span>
                 </div>
                 <button type="button" className="refresh" onClick={resetInterface}>
