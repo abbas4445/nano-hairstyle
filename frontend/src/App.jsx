@@ -22,6 +22,7 @@ const DEFAULT_BACKEND = (
 ).replace(/\/$/, '');
 const MAX_STREAM_COUNT = 6;
 const FACE_SUFFIX = ' keep my face same';
+const FACE_SUFFIX_NORMALIZED = FACE_SUFFIX.trim().toLowerCase();
 
 const PROMPTS = {
   female: [
@@ -93,12 +94,17 @@ function ensureFaceSuffix(text) {
   if (!trimmed) {
     return '';
   }
-  return trimmed.endsWith(FACE_SUFFIX) ? trimmed : `${trimmed}${FACE_SUFFIX}`;
+
+  if (trimmed.toLowerCase().endsWith(FACE_SUFFIX_NORMALIZED)) {
+    return trimmed;
+  }
+
+  return `${trimmed}${FACE_SUFFIX}`;
 }
 
 function App() {
   const [gender, setGender] = useState('female');
-  const [prompt, setPrompt] = useState(ensureFaceSuffix(PROMPTS.female[0]));
+  const [prompt, setPrompt] = useState(ensureFaceSuffix(RECOMMEND_PROMPT));
   const [count, setCount] = useState(1);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
