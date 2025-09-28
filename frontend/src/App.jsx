@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiUploadCloud,
   FiZap,
   FiSettings,
   FiRefreshCw,
+  FiChevronLeft,
+  FiChevronRight,
   FiStar,
   FiUser,
   FiUserCheck,
@@ -110,6 +112,10 @@ function App() {
   const [isCameraLoading, setIsCameraLoading] = useState(false);
 
   const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
+
+  const [activeResultIndex, setActiveResultIndex] = useState(0);
+
+  const resultRefs = useRef([]);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -224,6 +230,11 @@ function App() {
 
   const togglePromptPanel = () => {
     setIsPromptPanelOpen((prev) => !prev);
+  };
+
+  const handleResultClick = (position, imageSrc) => {
+    setActiveResultIndex(position);
+    setLightboxImage(imageSrc);
   };
 
   const handlePromptChange = (event) => {
@@ -373,6 +384,81 @@ function App() {
     [results]
   );
 
+  const handleNextResult = useCallback(() => {
+    if (!orderedResults.length) {
+      return;
+    }
+    setActiveResultIndex((prev) => (prev + 1) % orderedResults.length);
+  }, [orderedResults.length]);
+
+  const handlePrevResult = useCallback(() => {
+    if (!orderedResults.length) {
+      return;
+    }
+    setActiveResultIndex((prev) => (prev - 1 + orderedResults.length) % orderedResults.length);
+  }, [orderedResults.length]);
+
+  useEffect(() => {
+    if (!orderedResults.length) {
+      if (activeResultIndex !== 0) {
+        setActiveResultIndex(0);
+      }
+      return;
+    }
+
+    if (activeResultIndex > orderedResults.length - 1) {
+      setActiveResultIndex(orderedResults.length - 1);
+    }
+  }, [orderedResults.length, activeResultIndex]);
+
+  useEffect(() => {
+    if (!orderedResults.length) {
+      return;
+    }
+    const target = resultRefs.current[activeResultIndex];
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [activeResultIndex, orderedResults.length]);
+
+  useEffect(() => {
+    if (!lightboxImage || !orderedResults.length) {
+      return;
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        handleNextResult();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        handlePrevResult();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [lightboxImage, orderedResults.length, handleNextResult, handlePrevResult]);
+
+  useEffect(() => {
+    resultRefs.current = resultRefs.current.slice(0, orderedResults.length);
+  }, [orderedResults.length]);
+
+  useEffect(() => {
+    if (!lightboxImage) {
+      return;
+    }
+    if (!orderedResults.length) {
+      setLightboxImage(null);
+      return;
+    }
+    const current = orderedResults[activeResultIndex];
+    if (current && current.imageSrc !== lightboxImage) {
+      setLightboxImage(current.imageSrc);
+    }
+  }, [activeResultIndex, orderedResults, lightboxImage]);
+
   const scrollToWorkspace = () => {
     const el = document.getElementById('workspace');
     if (el) {
@@ -381,6 +467,11 @@ function App() {
   };
 
   const promptLibrary = PROMPTS[gender];
+
+  const resultsCount = orderedResults.length;
+  const canNavigate = resultsCount > 1;
+  const lightboxCounterLabel = resultsCount ? `${activeResultIndex + 1} / ${resultsCount}` : '0 / 0';
+  const isLightboxOpen = Boolean(lightboxImage);
 
   return (
     <div className="page">
@@ -573,7 +664,7 @@ function App() {
             <div className="card card--results">
               <div className="card__header card__header--results">
                 <div>
-                  <h2>3 Â· Showcase gallery</h2>
+                  <h2>3 · Showcase gallery</h2>
                   <span className="card__hint">Generated looks appear below in real time</span>
                 </div>
                 <button type="button" className="refresh" onClick={resetInterface}>
@@ -603,7 +694,7 @@ function App() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="results-grid"
+                      className={clsx('results-grid', { 'results-grid--single': orderedResults.length === 1 })}
                     >
                       {orderedResults.map((item, position) => (
                         <motion.figure
@@ -612,8 +703,13 @@ function App() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.25, delay: position * 0.07 }}
-                          className="result-card"
-                          onClick={() => setLightboxImage(item.imageSrc)}
+                          className={clsx('result-card', { 'result-card--active': isLightboxOpen && activeResultIndex === position })}
+                          ref={(node) => {
+                            if (node) {
+                              resultRefs.current[position] = node;
+                            }
+                          }}
+                          onClick={() => handleResultClick(position, item.imageSrc)}
                         >
                           <img src={item.imageSrc} alt={`Generated hairstyle ${position + 1}`} />
                           <figcaption>Style {position + 1}</figcaption>
@@ -646,6 +742,38 @@ function App() {
                 <button type="button" className="lightbox__close" onClick={() => setLightboxImage(null)}>
                   <FiX />
                 </button>
+                {isLightboxOpen && (
+                  <>
+                    <div className="lightbox__counter" aria-live="polite">{lightboxCounterLabel}</div>
+                    <div className="lightbox__controls" role="group" aria-label="Lightbox navigation">
+                      <button
+                        type="button"
+                        className="lightbox__nav-button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handlePrevResult();
+                        }}
+                        disabled={!canNavigate}
+                      >
+                        <FiChevronLeft aria-hidden="true" />
+                        <span className="sr-only">Previous image</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="lightbox__nav-button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleNextResult();
+                        }}
+                        disabled={!canNavigate}
+                      >
+                        <span className="sr-only">Next image</span>
+                        <FiChevronRight aria-hidden="true" />
+                      </button>
+                    </div>
+                  </>
+                )}
+
                 <img src={lightboxImage} alt="Generated hairstyle full screen" />
               </motion.div>
             </motion.div>
